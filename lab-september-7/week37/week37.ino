@@ -9,7 +9,7 @@ const int js_x = A8, js_y = A9, js_key = 19;
 
 
 // ISR STUFF IN PROGRESS, NOT FINISHED
-/*
+
 volatile int pushState = LOW;
 volatile unsigned long lastStateChange = 0;
 volatile int pushCounter = 0;
@@ -20,21 +20,26 @@ void onJoystickPush() {
     pushCounter++;
   }
 }
-*/
+
+
 void setup() {
   // IN PROGRESS
-  //pinMode(js_key, INPUT_PULLUP);
-  //attachInterrupt(digitalPinToInterrupt(js_key), onJoyStickPush, RISING);
+  Serial.begin(9600);
+  pinMode(js_key, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(js_key), onJoystickPush, RISING);
   lcd.begin(20, 4);
   lcd.setCursor(0, 0);
   lcd.print("test");
 }
+
 
 void printJoystickValues() {
  int x_value = analogRead(js_x);
  int y_value = analogRead(js_y);
  int x_relative = (x_value * 100) / 1023;
  int y_relative = (y_value * 100) / 1023;
+
+ Serial.println();
  
  lcd.setCursor(0, 0);
  lcd.print("x:");
@@ -52,7 +57,7 @@ lcd.print(" %");
 }
 
 void loop() {
-  //printJoystickValues();
-  //delay(1000);
-  //lcd.clear();
+  printJoystickValues();
+  delay(500);
+  lcd.clear();
 }
