@@ -1,4 +1,3 @@
-// include the library code:
 #include <LiquidCrystal.h>
 
 // initialize the library by associating any needed LCD interface pin
@@ -6,6 +5,13 @@
 const int rs = 37, en = 36, d4 = 35, d5 = 34, d6 = 33, d7 = 32;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int js_x = A8, js_y = A9, js_key = 19;
+
+#define Motor_forward 0
+#define Motor_return 1
+#define Motor_L_dir_pin 7
+#define Motor_R_dir_pin 8
+#define Motor_L_pwm_pin 9
+#define Motor_R_pwm_pin 10
 
 
 // ISR STUFF FINISHED, BUT JANKY
@@ -22,6 +28,10 @@ void onJoystickPush() {
 
 void setup() {
   // IN PROGRESS
+  pinMode(Motor_L_dir_pin, OUTPUT);
+  pinMode(Motor_R_dir_pin, OUTPUT);
+  pinMode(Motor_L_pwm_pin, OUTPUT);
+  pinMode(Motor_R_pwm_pin, OUTPUT);
   pinMode(js_key, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(js_key), onJoystickPush, FALLING);
   lcd.begin(20, 4);
@@ -51,6 +61,26 @@ lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
+void motorTest() {
+  digitalWrite(Motor_R_dir_pin, Motor_return);
+  digitalWrite(Motor_L_dir_pin, Motor_return);
+
+  for (int pwm = 150; pwm > 50; pwm--) {
+    analogWrite(Motor_L_pwm_pin, pwm);
+    analogWrite(Motor_R_pwm_pin, pwm);
+    delay(50);
+  }
+
+  digitalWrite(Motor_R_dir_pin, Motor_forward);
+  digitalWrite(Motor_L_dir_pin, Motor_forward);
+
+  for (int pwm = 50; pwm < 150; pwm++) {
+    analogWrite(Motor_L_pwm_pin, pwm);
+    analogWrite(Motor_R_pwm_pin, pwm);
+    delay(50);
+  }
+}
+
 void printPushCounter() {
    lcd.clear();
    lcd.setCursor(0, 0);
@@ -68,11 +98,12 @@ void loop() {
     if (now - lastStateChange >= debounceMillis) {
       digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
       lastStateChange = now;
-      pushCounter++;
-      printPushCounter();
+      //pushCounter++;
+      //printPushCounter();
+      motorTest();
     }
   }
   printJoystickValues();
-  delay(100);
+  delay(200);
   lcd.clear();
 }
