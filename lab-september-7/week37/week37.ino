@@ -61,6 +61,7 @@ lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
+// MOTORS SPIN FOR A SECOND, BUT SOMETHING IS FUCKY
 void motorTest() {
   digitalWrite(Motor_R_dir_pin, Motor_return);
   digitalWrite(Motor_L_dir_pin, Motor_return);
