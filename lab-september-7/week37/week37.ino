@@ -8,56 +8,71 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int js_x = A8, js_y = A9, js_key = 19;
 
 
-// ISR STUFF IN PROGRESS, NOT FINISHED
+// ISR STUFF FINISHED, BUT JANKY
 
-volatile int pushState = LOW;
+volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
-volatile int pushCounter = 0;
+const unsigned long debounceMillis = 50;
+volatile unsigned int pushCounter = 0;
 
 void onJoystickPush() {
-  if (millis() - lastStateChange > 50) {
-    pushState != pushState;
-    pushCounter++;
-  }
+  pushFlag = true;
 }
 
 
 void setup() {
   // IN PROGRESS
-  Serial.begin(9600);
   pinMode(js_key, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(js_key), onJoystickPush, RISING);
+  attachInterrupt(digitalPinToInterrupt(js_key), onJoystickPush, FALLING);
   lcd.begin(20, 4);
-  lcd.setCursor(0, 0);
-  lcd.print("test");
 }
 
 
 void printJoystickValues() {
  int x_value = analogRead(js_x);
  int y_value = analogRead(js_y);
- int x_relative = (x_value * 100) / 1023;
- int y_relative = (y_value * 100) / 1023;
-
- Serial.println();
+ double x_relative_volts = ( (double) x_value * 5.0) / 1023.0;
+ double y_relative_volts = ( (double) y_value * 5.0) / 1023.0;
+ int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
+ int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
  
  lcd.setCursor(0, 0);
  lcd.print("x:");
  lcd.print(x_value);
- lcd.setCursor(15, 0);
- lcd.print(x_relative);
+ lcd.setCursor(14, 0);
+ lcd.print(x_relative_percentage);
  lcd.print(" %");
 
 lcd.setCursor(0, 1);
 lcd.print("y:");
 lcd.print(y_value);
-lcd.setCursor(15, 1);
-lcd.print(y_relative);
+lcd.setCursor(14, 1);
+lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
+void printPushCounter() {
+   lcd.clear();
+   lcd.setCursor(0, 0);
+   lcd.print("Push counter: ");
+   lcd.print(pushCounter);
+   delay(1500);
+   lcd.clear();
+}
+
 void loop() {
+  if (pushFlag) {
+    pushFlag = false;
+
+    unsigned long now = millis();
+    if (now - lastStateChange >= debounceMillis) {
+      digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
+      lastStateChange = now;
+      pushCounter++;
+      printPushCounter();
+    }
+  }
   printJoystickValues();
-  delay(500);
+  delay(100);
   lcd.clear();
 }
