@@ -20,6 +20,7 @@ volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
 const unsigned long debounceMillis = 50;
 volatile unsigned int pushCounter = 0;
+volatile bool motorTestComplete = false;
 
 void onJoystickPush() {
   pushFlag = true;
@@ -27,7 +28,7 @@ void onJoystickPush() {
 
 
 void setup() {
-  // IN PROGRESS
+  Serial.begin(9600);
   pinMode(Motor_L_dir_pin, OUTPUT);
   pinMode(Motor_R_dir_pin, OUTPUT);
   pinMode(Motor_L_pwm_pin, OUTPUT);
@@ -37,6 +38,9 @@ void setup() {
   lcd.begin(20, 4);
 }
 
+
+// SOMETIMES JOYSTICK VALUES DO NOT CHANGE INDEPENDENTLY, BOTH ARE THE SAME VALUE
+// FAULT WITH CODE OR JOYSTICK? CLARIFY
 
 void printJoystickValues() {
  int x_value = analogRead(js_x);
@@ -61,25 +65,38 @@ lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
-// MOTORS SPIN FOR A SECOND, BUT SOMETHING IS FUCKY
+// SOMETHING IS NO LONGER FUCKY
+// Motor test runs once in each direction, then the motorTestComplete flag is set to true
+// This prevents any follow-up tests until the code is reuploaded
 void motorTest() {
   digitalWrite(Motor_R_dir_pin, Motor_return);
   digitalWrite(Motor_L_dir_pin, Motor_return);
 
-  for (int pwm = 150; pwm > 50; pwm--) {
+  // in the original code, both tires set to spin in the same direction, didn't happen in practice
+  // test code altered so that both wheels spin in the same direction instead of opposite directions, not sure if intentional or not
+  // CLARIFY
+
+  for (int pwm = 255; pwm > 50; pwm--) {
     analogWrite(Motor_L_pwm_pin, pwm);
     analogWrite(Motor_R_pwm_pin, pwm);
+    Serial.println(pwm);
     delay(50);
   }
 
   digitalWrite(Motor_R_dir_pin, Motor_forward);
   digitalWrite(Motor_L_dir_pin, Motor_forward);
 
-  for (int pwm = 50; pwm < 150; pwm++) {
+  Serial.println();
+
+  for (int pwm = 50; pwm < 255; pwm++) {
     analogWrite(Motor_L_pwm_pin, pwm);
     analogWrite(Motor_R_pwm_pin, pwm);
+    Serial.println(pwm);
     delay(50);
   }
+  analogWrite(Motor_L_pwm_pin, 0);
+  analogWrite(Motor_R_pwm_pin, 0);
+  motorTestComplete = true;
 }
 
 void printPushCounter() {
@@ -96,7 +113,7 @@ void loop() {
     pushFlag = false;
 
     unsigned long now = millis();
-    if (now - lastStateChange >= debounceMillis) {
+    if (now - lastStateChange >= debounceMillis && !motorTestComplete) {
       digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
       lastStateChange = now;
       //pushCounter++;
