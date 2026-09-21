@@ -1,5 +1,7 @@
 #include <LiquidCrystal.h>
 
+//PIN definitions
+
 const int rs = 37, en = 36, d4 = 35, d5 = 34, d6 = 33, d7 = 32;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int js_x = A8, js_y = A9, js_key = 19;
@@ -11,8 +13,7 @@ const int js_x = A8, js_y = A9, js_key = 19;
 #define Motor_L_pwm_pin 9
 #define Motor_R_pwm_pin 10
 
-
-// ISR STUFF FINISHED, BUT JANKY
+// Predefined global variables
 
 volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
@@ -66,12 +67,13 @@ lcd.print(" %");
 // Motor test runs once in each direction, then the motorTestComplete flag is set to true
 // This prevents any follow-up tests until the code is reuploaded
 void motorTest() {
-  digitalWrite(Motor_R_dir_pin, Motor_return);
-  digitalWrite(Motor_L_dir_pin, Motor_forward);
-
-  // in the original code, both tires set to spin in the same direction, didn't happen in practice
+   // in the original code, both tires set to spin in the same direction, didn't happen in practice
   // for now, LEFT ENGINES GO THE OPPOSITE WAY
   // either keep the workaround or change the cables
+
+  // forward test
+  digitalWrite(Motor_R_dir_pin, Motor_return);
+  digitalWrite(Motor_L_dir_pin, Motor_forward);
 
   for (int pwm = 255; pwm > 50; pwm--) {
     analogWrite(Motor_L_pwm_pin, pwm);
@@ -79,6 +81,8 @@ void motorTest() {
     Serial.println(pwm);
     delay(50);
   }
+
+  // reverse test
 
   digitalWrite(Motor_R_dir_pin, Motor_forward);
   digitalWrite(Motor_L_dir_pin, Motor_return);
@@ -95,6 +99,8 @@ void motorTest() {
   analogWrite(Motor_R_pwm_pin, 0);
   motorTestComplete = true;
 }
+
+// print the number of times the joystick has been clicked
 
 void printPushCounter() {
    lcd.clear();
