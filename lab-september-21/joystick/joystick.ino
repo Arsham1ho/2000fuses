@@ -45,6 +45,14 @@ void printJoystickValues() {
  double y_relative_volts = ( (double) y_value * 5.0) / 1023.0;
  int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
  int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
+
+  if (x_relative_percentage < 0) {
+  x_relative_percentage = x_relative_percentage * -1;
+ }
+
+ if (y_relative_percentage < 0) {
+  y_relative_percentage = y_relative_percentage * -1;
+ }
  
  lcd.setCursor(0, 0);
  lcd.print("x:");
@@ -102,7 +110,46 @@ void moveWithJoystick() {
  int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
  int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
 
+ if (x_relative_percentage < 0) {
+  x_relative_percentage = x_relative_percentage * -1;
+ }
+
  
+ if (y_relative_percentage < 0) {
+  y_relative_percentage = y_relative_percentage * -1;
+ }
+
+ int x_rel_pwm = 255 / 100 * x_relative_percentage;
+ int y_rel_pwm = 255 / 100 * y_relative_percentage;
+
+ if (x_relative_percentage == 0 && y_relative_percentage == 0) {
+  analogWrite(Motor_L_pwm_pin, 0);
+  analogWrite(Motor_R_pwm_pin, 0);
+ }
+
+  if (x_value > 512) {
+    digitalWrite(Motor_R_pwm_pin, Motor_return);
+    analogWrite(Motor_R_pwm_pin, x_rel_pwm);
+  }
+
+  if (x_value < 512) {
+    digitalWrite(Motor_R_pwm_pin, Motor_forward);
+    analogWrite(Motor_R_pwm_pin, x_rel_pwm);
+  }
+
+  if (y_value > 0) {
+    digitalWrite(Motor_R_pwm_pin, Motor_return);
+    digitalWrite(Motor_L_pwm_pin, Motor_forward);
+    analogWrite(Motor_R_pwm_pin, y_rel_pwm);
+    analogWrite(Motor_L_pwm_pin, y_rel_pwm);
+  }
+
+    if (y_value < 0) {
+    digitalWrite(Motor_R_pwm_pin, Motor_forward);
+    digitalWrite(Motor_L_pwm_pin, Motor_return);
+    analogWrite(Motor_R_pwm_pin, y_rel_pwm);
+    analogWrite(Motor_L_pwm_pin, y_rel_pwm);
+  }
   
 }
 
@@ -151,7 +198,7 @@ void printPushCounter() {
 }
 
 void loop() {
-  
+  /*
   if (pushFlag) {
     pushFlag = false;
 
@@ -165,8 +212,8 @@ void loop() {
       //motorTest();
     }
   }
-  
-  
+  */
+  moveWithJoystick();
   printJoystickValues();
   delay(200);
   lcd.clear();
