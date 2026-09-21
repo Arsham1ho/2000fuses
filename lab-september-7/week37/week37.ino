@@ -1,7 +1,5 @@
 #include <LiquidCrystal.h>
 
-// initialize the library by associating any needed LCD interface pin
-// with the arduino pin number it is connected to
 const int rs = 37, en = 36, d4 = 35, d5 = 34, d6 = 33, d7 = 32;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int js_x = A8, js_y = A9, js_key = 19;
@@ -65,16 +63,15 @@ lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
-// SOMETHING IS NO LONGER FUCKY
 // Motor test runs once in each direction, then the motorTestComplete flag is set to true
 // This prevents any follow-up tests until the code is reuploaded
 void motorTest() {
   digitalWrite(Motor_R_dir_pin, Motor_return);
-  digitalWrite(Motor_L_dir_pin, Motor_return);
+  digitalWrite(Motor_L_dir_pin, Motor_forward);
 
   // in the original code, both tires set to spin in the same direction, didn't happen in practice
-  // test code altered so that both wheels spin in the same direction instead of opposite directions, not sure if intentional or not
-  // CLARIFY
+  // for now, LEFT ENGINES GO THE OPPOSITE WAY
+  // either keep the workaround or change the cables
 
   for (int pwm = 255; pwm > 50; pwm--) {
     analogWrite(Motor_L_pwm_pin, pwm);
@@ -84,7 +81,7 @@ void motorTest() {
   }
 
   digitalWrite(Motor_R_dir_pin, Motor_forward);
-  digitalWrite(Motor_L_dir_pin, Motor_forward);
+  digitalWrite(Motor_L_dir_pin, Motor_return);
 
   Serial.println();
 
@@ -116,8 +113,8 @@ void loop() {
     if (now - lastStateChange >= debounceMillis && !motorTestComplete) {
       digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
       lastStateChange = now;
-      //pushCounter++;
-      //printPushCounter();
+      pushCounter++;
+      printPushCounter();
       motorTest();
     }
   }
