@@ -11,14 +11,12 @@ const int js_x = A8, js_y = A9, js_key = 19;
 #define Motor_L_pwm_pin 9
 #define Motor_R_pwm_pin 10
 
-
-// ISR STUFF FINISHED, BUT JANKY
-
 volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
 const unsigned long debounceMillis = 50;
 volatile unsigned int pushCounter = 0;
 volatile bool motorTestComplete = false;
+volatile bool simpleTurnsComplete = false;
 
 void onJoystickPush() {
   pushFlag = true;
@@ -63,10 +61,56 @@ lcd.print(y_relative_percentage);
 lcd.print(" %");
 }
 
-// SOMETHING IS NO LONGER FUCKY
+void simpleTurns() {
+  digitalWrite(Motor_L_dir_pin, Motor_forward);
+  digitalWrite(Motor_R_dir_pin, Motor_return);
+
+  int pwm = 255 * 0.3;
+
+  analogWrite(Motor_L_pwm_pin, pwm);
+  delay(2000);
+  analogWrite(Motor_L_pwm_pin, 0);
+  analogWrite(Motor_R_pwm_pin, pwm);
+  delay(1000);
+  analogWrite(Motor_R_pwm_pin, 0);
+
+  pwm = 255 * 0.75;
+  
+  digitalWrite(Motor_L_dir_pin, Motor_return);
+  digitalWrite(Motor_R_dir_pin, Motor_forward);
+  analogWrite(Motor_L_pwm_pin, pwm);
+  analogWrite(Motor_R_pwm_pin, pwm);
+  delay(4000);
+
+  pwm = 0;
+
+  analogWrite(Motor_L_pwm_pin, pwm);
+  analogWrite(Motor_R_pwm_pin, pwm);
+  simpleTurnsComplete = true;
+}
+
+void moveWithJoystick() {
+  // x negative = left
+  // x positive = right
+  // y negative = back
+  // y positive = forward
+
+ int x_value = analogRead(js_x);
+ int y_value = analogRead(js_y);
+ double x_relative_volts = ( (double) x_value * 5.0) / 1023.0;
+ double y_relative_volts = ( (double) y_value * 5.0) / 1023.0;
+ int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
+ int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
+
+ 
+  
+}
+
 // Motor test runs once in each direction, then the motorTestComplete flag is set to true
 // This prevents any follow-up tests until the code is reuploaded
 void motorTest() {
+
+  // for now, RIGHT ENGINE goes the opposite way
   digitalWrite(Motor_R_dir_pin, Motor_return);
   digitalWrite(Motor_L_dir_pin, Motor_forward);
 
@@ -102,23 +146,27 @@ void printPushCounter() {
    lcd.setCursor(0, 0);
    lcd.print("Push counter: ");
    lcd.print(pushCounter);
-   delay(1500);
+   delay(1000);
    lcd.clear();
 }
 
 void loop() {
+  
   if (pushFlag) {
     pushFlag = false;
 
     unsigned long now = millis();
-    if (now - lastStateChange >= debounceMillis && !motorTestComplete) {
+    if (now - lastStateChange >= debounceMillis && !simpleTurnsComplete) {
       digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
       lastStateChange = now;
       pushCounter++;
       printPushCounter();
-      motorTest();
+      simpleTurns();
+      //motorTest();
     }
   }
+  
+  
   printJoystickValues();
   delay(200);
   lcd.clear();
