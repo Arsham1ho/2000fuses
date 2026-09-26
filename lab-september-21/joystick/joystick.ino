@@ -2,7 +2,8 @@
 
 const int rs = 37, en = 36, d4 = 35, d5 = 34, d6 = 33, d7 = 32;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-const int js_x = A8, js_y = A9, js_key = 19;
+//temporarily reversed x and y pins for race-day ergonomics, sep. 26
+const int js_x = A9, js_y = A8, js_key = 19;
 
 #define Motor_forward 0
 #define Motor_return 1
@@ -105,19 +106,10 @@ void moveWithJoystick() {
 
  int x_value = analogRead(js_x);
  int y_value = analogRead(js_y);
- double x_relative_volts = ( (double) x_value * 5.0) / 1023.0;
- double y_relative_volts = ( (double) y_value * 5.0) / 1023.0;
- int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
- int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
-
- if (x_relative_percentage < 0) {
-  x_relative_percentage = x_relative_percentage * -1;
- }
-
- 
- if (y_relative_percentage < 0) {
-  y_relative_percentage = y_relative_percentage * -1;
- }
+ double x_relative_volts = ( ((double) x_value + 1) * 5.0 ) / 1023.0;
+ double y_relative_volts = ( ((double) y_value - 8) * 5.0 ) / 1023.0;
+ int x_relative_percentage = abs( (((x_relative_volts / 5) * 100) - 50) * 2 );
+ int y_relative_percentage = abs( (((y_relative_volts / 5) * 100) - 50) * 2 );
 
  int x_rel_pwm = 255 / 100 * x_relative_percentage;
  int y_rel_pwm = 255 / 100 * y_relative_percentage;
@@ -128,25 +120,29 @@ void moveWithJoystick() {
  }
 
   if (x_value > 512) {
-    digitalWrite(Motor_R_pwm_pin, Motor_return);
+    digitalWrite(Motor_R_dir_pin, Motor_return);
+    digitalWrite(Motor_L_dir_pin, Motor_return);
     analogWrite(Motor_R_pwm_pin, x_rel_pwm);
+    analogWrite(Motor_L_pwm_pin, x_rel_pwm);
   }
 
   if (x_value < 512) {
-    digitalWrite(Motor_R_pwm_pin, Motor_forward);
+    digitalWrite(Motor_R_dir_pin, Motor_forward);
+    digitalWrite(Motor_L_dir_pin, Motor_forward);
     analogWrite(Motor_R_pwm_pin, x_rel_pwm);
+    analogWrite(Motor_L_pwm_pin, x_rel_pwm);
   }
 
-  if (y_value > 0) {
-    digitalWrite(Motor_R_pwm_pin, Motor_return);
-    digitalWrite(Motor_L_pwm_pin, Motor_forward);
+  if (y_value > 512) {
+    digitalWrite(Motor_R_dir_pin, Motor_return);
+    digitalWrite(Motor_L_dir_pin, Motor_forward);
     analogWrite(Motor_R_pwm_pin, y_rel_pwm);
     analogWrite(Motor_L_pwm_pin, y_rel_pwm);
   }
 
-    if (y_value < 0) {
-    digitalWrite(Motor_R_pwm_pin, Motor_forward);
-    digitalWrite(Motor_L_pwm_pin, Motor_return);
+    if (y_value < 512) {
+    digitalWrite(Motor_R_dir_pin, Motor_forward);
+    digitalWrite(Motor_L_dir_pin, Motor_return);
     analogWrite(Motor_R_pwm_pin, y_rel_pwm);
     analogWrite(Motor_L_pwm_pin, y_rel_pwm);
   }
@@ -203,18 +199,17 @@ void loop() {
     pushFlag = false;
 
     unsigned long now = millis();
-    if (now - lastStateChange >= debounceMillis && !simpleTurnsComplete) {
+    if (now - lastStateChange >= debounceMillis) {
       digitalWrite(digitalPinToInterrupt(js_key), !digitalRead(digitalPinToInterrupt(js_key)));
       lastStateChange = now;
       pushCounter++;
-      printPushCounter();
-      simpleTurns();
+      //printPushCounter();
+      //simpleTurns();
       //motorTest();
     }
   }
   */
   moveWithJoystick();
   printJoystickValues();
-  delay(200);
-  lcd.clear();
+  //lcd.clear();
 }
