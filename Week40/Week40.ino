@@ -7,8 +7,11 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int js_x = A8, js_y = A9, js_key = 19;
 
 // ISR STUFF START
-const byte interruptPin = 3;
-volatile int pulseCount = 0;
+const int interruptPinR = 2;
+const int interruptPinL = 3;
+volatile int pulseCountL = 0;
+volatile int pulseCountR = 0;
+volatile int pulseCountAvg = 0;
 
 #define Motor_forward 0
 #define Motor_return 1
@@ -22,46 +25,25 @@ volatile int pulseCount = 0;
 volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
 const unsigned long debounceMillis = 50;
-const double distance = 60.0;
+const double distance = 207.5;
 const double pulsesPerCm = 12.9;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), countPulse, FALLING);
+  pinMode(interruptPinL, INPUT_PULLUP);
+  pinMode(interruptPinR, INPUT_PULLUP);
+  pinMode(js_key, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPinL), countPulseL, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPinR), countPulseR, FALLING);
   lcd.begin(20, 4);
 }
-void countPulse() {
-  pulseCount++;
+void countPulseL() {
+  pulseCountL++;
 }
 
-// SOMETIMES JOYSTICK VALUES DO NOT CHANGE INDEPENDENTLY, BOTH ARE THE SAME VALUE
-// FAULT WITH CODE OR JOYSTICK? CLARIFY
-/*
-void printJoystickValues() {
- int x_value = analogRead(js_x);
- int y_value = analogRead(js_y);
- double x_relative_volts = ( (double) x_value * 5.0) / 1023.0;
- double y_relative_volts = ( (double) y_value * 5.0) / 1023.0;
- int x_relative_percentage = (((x_relative_volts / 5) * 100) - 50) * 2;
- int y_relative_percentage = (((y_relative_volts / 5) * 100) - 50) * 2;
- 
- lcd.setCursor(0, 0);
- lcd.print("x:");
- lcd.print(x_value);
- lcd.setCursor(14, 0);
- lcd.print(x_relative_percentage);
- lcd.print(" %");
-
-lcd.setCursor(0, 1);
-lcd.print("y:");
-lcd.print(y_value);
-lcd.setCursor(14, 1);
-lcd.print(y_relative_percentage);
-lcd.print(" %");
+void countPulseR() {
+  pulseCountR++;
 }
-*/
-
 
 // OSKARI MOTOR HELL
 
@@ -82,26 +64,41 @@ void motor() {
     
 }
 
-void exercise5() {
+void moveSetDistance() {
   int x_value = analogRead(js_x);
   int y_value = analogRead(js_y);
+  pulseCountAvg = (pulseCountL + pulseCountR) / 2;
 
   digitalWrite(Motor_R_dir_pin, Motor_forward);
   digitalWrite(Motor_L_dir_pin, Motor_return);
   analogWrite(Motor_R_pwm_pin, 255);
-  analogWrite(Motor_L_pwm_pin, 255);
+  analogWrite(Motor_L_pwm_pin, 220);
 
-  if (pulseCount >= (distance * pulsesPerCm)) {
+  if (pulseCountAvg >= (distance * pulsesPerCm)) {
     analogWrite(Motor_R_pwm_pin, 0);
     analogWrite(Motor_L_pwm_pin, 0);
   }
 }
 
+void printPulseCounts() {
+  lcd.setCursor(0, 0);
+  lcd.print("Pulse L: ");
+  lcd.print(pulseCountL);
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Pulse R: ");
+  lcd.print(pulseCountR);
+
+  lcd.setCursor(0, 2);
+  lcd.print("Pulse avg: ");
+  lcd.print(pulseCountAvg);
+}
+
 
 void loop() {
-  exercise5();
   interrupts();
-  Serial.println(pulseCount);
+  moveSetDistance();
+  printPulseCounts();
   delay(25);
   lcd.clear();
 }
