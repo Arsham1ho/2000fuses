@@ -25,7 +25,7 @@ volatile int pulseCountAvg = 0;
 volatile bool pushFlag = false;
 volatile unsigned long lastStateChange = 0;
 const unsigned long debounceMillis = 50;
-const double distance = 207.5;
+const double distance = 7.5;
 const double pulsesPerCm = 12.9;
 
 void setup() {
