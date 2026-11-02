@@ -20,7 +20,7 @@ const int SCL_pin = 21; // serial clock
 
 // Predefined global variables
 
-int reading = 0;
+volatile int reading = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -49,7 +49,7 @@ void printCompassHeading() {
   Wire.write(byte(0x01));
   Wire.endTransmission();
 
-  Wire.requestFrom(CMPS_address, 2);
+  Wire.requestFrom(CMPS_address, 2, false);
 
   if (Wire.available() >= 2) {
     reading = map(Wire.read(), 0, 255, 0, 359);
@@ -85,7 +85,6 @@ void printCompassHeading() {
     lcd.print("Direction: ");
     lcd.print("SW");
 
-
   } else if (reading >= 248 && reading < 293) {
     lcd.setCursor(0, 1);
     lcd.print("Direction: ");
@@ -100,8 +99,8 @@ void printCompassHeading() {
     lcd.setCursor(0, 1);
     lcd.print("Direction: ");
     lcd.print("N");
-
   }
+  
   lcd.setCursor(0, 0);
   lcd.print("Reading: ");
   lcd.print(reading);
@@ -122,9 +121,21 @@ void turnRight() {
   analogWrite(Motor_L_pwm_pin, 50);
 }
 
-void turnToHeading (unsigned int heading) {
-  while (!(reading >= heading - 2) && (reading <= heading + 2)) {
-    turnLeft();
+void turnToHeading (int heading) {
+  Wire.beginTransmission(CMPS_address);
+  Wire.write(byte(0x01));
+  Wire.endTransmission();
+
+  Wire.requestFrom(CMPS_address, 2, false);
+
+  if (Wire.available() >= 2) {
+    reading = map(Wire.read(), 0, 255, 0, 359);
+  }
+  if (reading != heading) {
+    digitalWrite(Motor_R_dir_pin, Motor_forward);
+    digitalWrite(Motor_L_dir_pin, Motor_forward);
+    analogWrite(Motor_R_pwm_pin, 50);
+    analogWrite(Motor_L_pwm_pin, 50);
   }
   analogWrite(Motor_R_pwm_pin, 0);
   analogWrite(Motor_L_pwm_pin, 0);
