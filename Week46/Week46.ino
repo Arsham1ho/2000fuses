@@ -10,8 +10,8 @@ int buttonPin = 19;
 int buttonState = 1;
 const int SDA_pin = 20; // serial data
 const int SCL_pin = 21; // serial clock
-float incomingByte;
-float incomingByte2;
+int incomingByte;
+int incomingByte2;
 const int encL_pin = 2;
 const int encR_pin = 3;
 
@@ -37,13 +37,17 @@ volatile long pulsesR = 0;
 int reading = 0;
 bool compassOk = false;
 
-void isrL() { pulsesL++; }
-void isrR() { pulsesR++; }
+void isrL() {
+  pulsesL++;
+}
+void isrR() {
+  pulsesR++;
+}
 
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(500000);
-  Serial.println("Please Give Needed distance in CM");
+  Serial.println("Please give command \"dist:\" or \"degree:\"");
   Wire.begin();
   pinMode(buttonPin, INPUT_PULLUP);
   pinMode(Motor_L_dir_pin, OUTPUT);
@@ -55,21 +59,6 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(encL_pin), isrL, RISING);
   attachInterrupt(digitalPinToInterrupt(encR_pin), isrR, RISING);
   lcd.begin(20, 4);
-
-  
-}
-
-
-void printRawValue() {
-  Wire.beginTransmission(CMPS_address);
-  Wire.write(byte(0x01));
-  Wire.endTransmission(false);
-
-  Wire.requestFrom(CMPS_address, 1, false);
-
-  if (Wire.available() >= 1) {
-    byte raw = Wire.read();
-  }
 }
 
 void printCompassHeading() {
@@ -157,12 +146,12 @@ void stopMotors() {
 }
 
 int headingError(int heading) {
-  return ((heading - reading + 540) % 360) - 180;
+  return ( (heading - reading + 540) % 360 ) - 180;
 }
 void turnToHeading(unsigned int heading) {
   printCompassHeading();
   while (compassOk && abs(headingError((int)heading)) > TOLERANCE) {
-    if (headingError((int)heading) > 0) {
+    if (headingError(heading) > 0) {
       turnRight();
     } else {
       turnLeft();
@@ -173,25 +162,25 @@ void turnToHeading(unsigned int heading) {
   delay(300);
 }
 
-void driveCm(float cm, int pwm) {
-  long target = (long)(abs(cm) * PULSES_PER_CM);
+void driveCm(int cm, int pwm) {
+  int target = (int) (abs(cm) * PULSES_PER_CM);
 
   noInterrupts();
   pulsesL = 0;
   pulsesR = 0;
   interrupts();
 
-if (cm > 0){
-  digitalWrite(Motor_R_dir_pin, Motor_forward);
-  digitalWrite(Motor_L_dir_pin, Motor_return);
-} else if (cm < 0) {
-  digitalWrite(Motor_R_dir_pin, Motor_return);
-  digitalWrite(Motor_L_dir_pin, Motor_forward);
-}
+  if (cm > 0) {
+    digitalWrite(Motor_R_dir_pin, Motor_forward);
+    digitalWrite(Motor_L_dir_pin, Motor_return);
+  } else if (cm < 0) {
+    digitalWrite(Motor_R_dir_pin, Motor_return);
+    digitalWrite(Motor_L_dir_pin, Motor_forward);
+  }
 
-analogWrite(Motor_R_pwm_pin, pwm);
+  analogWrite(Motor_R_pwm_pin, pwm);
   analogWrite(Motor_L_pwm_pin, pwm);
- 
+  printCompassHeading();
   unsigned long startTime = millis();
   while (millis() - startTime < 10000) {
     noInterrupts();
@@ -206,36 +195,43 @@ analogWrite(Motor_R_pwm_pin, pwm);
   delay(300);
 }
 
-
-  
-
-
 void loop() {
-  
-if (Serial.available() > 0) {
-  incomingByte = Serial.parseInt();
-    Serial.print("Distance in CM: ");
-    Serial.println(incomingByte, DEC);
-    driveCm(incomingByte, PWM_25);
-    lcd.setCursor(0, 2);
-    lcd.print("Distance: ");
-    lcd.print(incomingByte);
-    lcd.println(" CM");
-    
-   Serial.println("Please Give Needed Degrees");
-   incomingByte2 = Serial.parseInt();
-    Serial.print("Degree: ");
-    Serial.print(incomingByte2, DEC);
-    Serial.println("                      ");
-    turnToHeading(incomingByte2);
-    Serial.println("Please Give Needed Distance in CM:");
-     lcd.setCursor(0, 3);
-    lcd.print("Degrees: ");
-    lcd.print(incomingByte2);
-    lcd.println(" ");
 
-    
- 
+if (Serial.available() > 0) {
+  String cmd_msg = Serial.readStringUntil('\n');
+  Serial.print("cmd: ");
+  Serial.println(cmd_msg);
+  int pos_dist = cmd_msg.indexOf("dist");
+  int pos_deg = cmd_msg.indexOf("degree");
+
+  if (pos_dist > -1) {
+    lcd.setCursor(0, 3);
+      lcd.print("Cmd: ");
+      lcd.print(cmd_msg);
+    pos_dist = cmd_msg.indexOf(":");
+
+    if (pos_dist > -1) {
+      int inputDist = cmd_msg.substring(pos_dist + 1).toInt();
+      driveCm(inputDist, PWM_25);
+      Serial.println("Please give command \"dist:\" or \"degree:\"");
+    }
   }
- 
+
+  if (pos_deg > -1) {
+    lcd.setCursor(0, 3);
+    lcd.print("Cmd: ");
+    lcd.print(cmd_msg);
+    pos_deg = cmd_msg.indexOf(":");
+
+    if (pos_deg > -1) {
+      int inputDeg = cmd_msg.substring(pos_deg + 1).toInt();
+      turnToHeading(inputDeg);
+      Serial.println("Please give command \"dist:\" or \"degree:\"");
+    }
+  }
+}
+
+  printCompassHeading();
+  delay(500);
+  lcd.clear();
 }
